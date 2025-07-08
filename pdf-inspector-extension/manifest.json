@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "Prompt Inspector",
+  "version": "1.0",
+  "description": "Intercepts PDF uploads and checks for secrets",
+  "permissions": ["scripting", "storage", "activeTab", "tabs"],
+  "host_permissions": [
+    "https://chat.openai.com/*",
+    "https://chatgpt.com/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": "logo.png"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://chat.openai.com/*",
+        "https://chatgpt.com/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

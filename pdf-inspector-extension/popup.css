@@ -1,0 +1,28 @@
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  margin: 0;
+  padding: 16px;
+  width: 320px;
+  background-color: #ffffff;
+  color: #333;
+}
+
+h2 {
+  font-size: 18px;
+  margin-bottom: 10px;
+  text-align: center;
+  color: #333;
+}
+
+#message {
+  font-size: 14px;
+  white-space: pre-wrap;
+  padding: 12px;
+  border-radius: 6px;
+  border: 1px solid #ddd;
+  background-color: #f7f7f7;
+  max-height: 300px;
+  overflow-y: auto;
+  line-height: 1.4;
+  word-wrap: break-word;
+}
