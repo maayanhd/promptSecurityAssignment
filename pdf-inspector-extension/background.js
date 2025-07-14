@@ -1,63 +1,45 @@
-console.log('[Prompt Inspector] Background script loaded.');
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (msg.type === 'UPLOAD_PDF') {
+    (async () => {
+      try {
+        const fileName = msg.fileName;
+        // Directly use msg.fileBuffer which is already an ArrayBuffer
+        const buffer = new Uint8Array(msg.fileBuffer);
 
-chrome.runtime.onInstalled.addListener(() => {
-  console.log('[Prompt Inspector] Extension installed.');
-});
-
-chrome.runtime.onConnect.addListener((port) => {
-  if (port.name !== 'pdfUpload') return;
-
-  console.log('[Prompt Inspector] Connection established with content script.');
-
-  let fileName = null;
-  let buffer = null;
-
-  port.onMessage.addListener(async (msg) => {
-    try {
-      if (msg.type === 'fileMeta') {
-        fileName = msg.fileName;
-        console.log('[Prompt Inspector] Received filename:', fileName);
-      }
-
-      if (msg.type === 'fileBuffer') {
-        if (!Array.isArray(msg.fileBuffer)) {
-          throw new Error('Received fileBuffer is not an array.');
-        }
-
-        buffer = new Uint8Array(msg.fileBuffer).buffer;
-        console.log('[Prompt Inspector] Received file buffer of size:', buffer.byteLength);
-
-        if (!fileName || !buffer.byteLength) {
-          port.postMessage({ status: 'error', error: 'Missing or empty file data.' });
-          return;
-        }
-
-        const blob = new Blob([new Uint8Array(buffer)], { type: 'application/pdf' });
+        const file = new File([buffer], fileName, { type: 'application/pdf' });
         const formData = new FormData();
-        formData.append('file', blob, fileName);
+        formData.append('file', file);
 
-        console.log('[Prompt Inspector] Sending formData to backend...');
 
         const response = await fetch('http://localhost:8000/inspect', {
           method: 'POST',
           body: formData
         });
 
+        if (!response.ok) {
+          const errText = await response.text();
+          throw new Error(`HTTP error! status: ${response.status}\n${errText}`);
+        }
+
         const result = await response.json();
-        console.log('[Prompt Inspector] Inspection response:', result);
 
         chrome.storage.local.set({ lastResult: result });
-        chrome.runtime.sendMessage({ type: 'INSPECTION_RESULT', data: result }, () => {
-          if (chrome.runtime.lastError) {
-            console.warn('[Prompt Inspector] No listener for INSPECTION_RESULT:', chrome.runtime.lastError.message);
-          }
+        // Ensure this sendMessage has its own error handling if it goes to a UI script
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        if (tabs[0]?.id) {
+            chrome.tabs.sendMessage(tabs[0].id, { type: 'INSPECTION_RESULT', data: result });
+            }
         });
 
-        port.postMessage({ status: 'done', result });
+//        chrome.runtime.sendMessage({ type: 'INSPECTION_RESULT', data: result });
+
+        sendResponse({ status: 'done', result });
+      } catch (err) {
+        console.error('[Prompt Inspector] Background script error during PDF upload:', err);
+        sendResponse({ status: 'error', error: err.message });
       }
-    } catch (err) {
-      console.error('[Prompt Inspector] Error during message handling:', err);
-      port.postMessage({ status: 'error', error: err.message });
-    }
-  });
+    })();
+
+    return true; // keep async channel open
+  }
 });

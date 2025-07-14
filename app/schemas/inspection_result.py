@@ -59,7 +59,7 @@ class ProtectionActions(BaseModel):
 
 
 class Scores(BaseModel):
-    Secrets: Optional[Dict[str, Union[int, float]]] = Field(alias="Sensitive Data")
+    sensitive_data: Optional[Dict[str, Union[int, float]]] = Field(default=None, alias="Sensitive Data")
 
 
 class Prompt(BaseModel):
